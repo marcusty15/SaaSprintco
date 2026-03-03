@@ -81,8 +81,16 @@ export default function Quotes() {
     return () => clearTimeout(timer);
   }, [items, currency]);
 
+  function isPerUnit(process_id) {
+    const p = catalog.processes.find(p => String(p.id) === String(process_id));
+    return p?.pricing_mode === 'per_unit';
+  }
+
   async function runCalculation() {
-    const valid = items.filter(it => it.material_id && it.process_id && it.quantity > 0 && it.machine_hours > 0);
+    const valid = items.filter(it =>
+      it.material_id && it.process_id && it.quantity > 0 &&
+      (isPerUnit(it.process_id) || it.machine_hours > 0)
+    );
     if (valid.length === 0) { setCalculation(null); return; }
     setCalculating(true);
     try {
@@ -124,8 +132,11 @@ export default function Quotes() {
   }
 
   async function handleSave(status) {
-    const validItems = items.filter(it => it.material_id && it.process_id && it.quantity > 0 && it.machine_hours > 0);
-    if (validItems.length === 0) { setFormError('Completa al menos un ítem (material, proceso, cantidad y horas)'); return; }
+    const validItems = items.filter(it =>
+      it.material_id && it.process_id && it.quantity > 0 &&
+      (isPerUnit(it.process_id) || it.machine_hours > 0)
+    );
+    if (validItems.length === 0) { setFormError('Completa al menos un ítem (material, proceso y cantidad)'); return; }
     setFormError(''); setSaving(true);
     try {
       await api.post('/quotes', {
@@ -269,7 +280,7 @@ export default function Quotes() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isPerUnit(item.process_id) ? '1fr 1fr' : '1fr 1fr 1fr', gap: 14, marginBottom: 14 }}>
             <div>
               <label style={lbl}>Ancho (cm)</label>
               <input type="number" min="0" placeholder="0" value={item.width_cm} onChange={e => updateItem(idx, 'width_cm', e.target.value)} style={inp()} />
@@ -278,11 +289,18 @@ export default function Quotes() {
               <label style={lbl}>Alto (cm)</label>
               <input type="number" min="0" placeholder="0" value={item.height_cm} onChange={e => updateItem(idx, 'height_cm', e.target.value)} style={inp()} />
             </div>
-            <div>
-              <label style={lbl}>Horas máquina</label>
-              <input type="number" min="0" step="0.1" value={item.machine_hours} onChange={e => updateItem(idx, 'machine_hours', e.target.value)} style={inp()} />
-            </div>
+            {!isPerUnit(item.process_id) && (
+              <div>
+                <label style={lbl}>Horas máquina</label>
+                <input type="number" min="0" step="0.1" value={item.machine_hours} onChange={e => updateItem(idx, 'machine_hours', e.target.value)} style={inp()} />
+              </div>
+            )}
           </div>
+          {isPerUnit(item.process_id) && (
+            <div style={{ marginBottom: 14, padding: '8px 14px', borderRadius: 10, background: T.blueLight, border: `1px solid ${T.blue}33`, fontSize: 12, color: T.blue, fontWeight: 600 }}>
+              ℹ Cobro por unidad fija — no requiere horas de máquina
+            </div>
+          )}
 
           {/* Acabados */}
           {catalog.finishings.length > 0 && (

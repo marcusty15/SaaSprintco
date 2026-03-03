@@ -7,7 +7,7 @@ const TABS  = ['Materiales', 'Procesos', 'Acabados', 'Reglas'];
 const UNITS = ['m2', 'unidad', 'metro_lineal'];
 
 const EMPTY_MATERIAL  = { name: '', description: '', unit: 'm2', price_per_unit: '', currency: 'USD' };
-const EMPTY_PROCESS   = { name: '', description: '', cost_per_hour: '', labor_rate: '', currency: 'USD' };
+const EMPTY_PROCESS   = { name: '', description: '', pricing_mode: 'hourly', cost_per_hour: '', labor_rate: '', price_per_unit: '', currency: 'USD' };
 const EMPTY_FINISHING = { name: '', description: '', cost_per_unit: '', currency: 'USD' };
 const EMPTY_RULE      = {
   material_id: '', process_id: '',
@@ -108,7 +108,11 @@ export default function Catalog() {
   // Subtítulo por tab para cada item de la lista
   function itemSubtitle(item) {
     if (tab === 0) return `${item.unit} · ${item.currency} ${parseFloat(item.price_per_unit).toFixed(2)}/unidad${item.description ? ' · ' + item.description : ''}`;
-    if (tab === 1) return `${item.currency} ${parseFloat(item.cost_per_hour).toFixed(2)}/hora · M.O. ${parseFloat(item.labor_rate).toFixed(2)}/hora${item.description ? ' · ' + item.description : ''}`;
+    if (tab === 1) {
+      if (item.pricing_mode === 'per_unit')
+        return `Por unidad · ${item.currency} ${parseFloat(item.price_per_unit || 0).toFixed(2)}/und${item.description ? ' · ' + item.description : ''}`;
+      return `Por hora · ${item.currency} ${parseFloat(item.cost_per_hour).toFixed(2)}/hora · M.O. ${parseFloat(item.labor_rate).toFixed(2)}/hora${item.description ? ' · ' + item.description : ''}`;
+    }
     if (tab === 2) return `${item.currency} ${parseFloat(item.cost_per_unit).toFixed(2)}/unidad${item.description ? ' · ' + item.description : ''}`;
     if (tab === 3) {
       const parts = [
@@ -221,23 +225,42 @@ export default function Catalog() {
 
                 {/* Procesos */}
                 {tab === 1 && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                    <div>
-                      <label style={lbl}>Costo/hora *</label>
-                      <input required type="number" min="0" step="0.01" value={f('cost_per_hour')} onChange={e => upd('cost_per_hour', e.target.value)} style={inp()} placeholder="0.00" />
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div>
+                        <label style={lbl}>Modalidad de cobro *</label>
+                        <select value={f('pricing_mode')} onChange={e => upd('pricing_mode', e.target.value)} style={inp({ cursor: 'pointer' })}>
+                          <option value="hourly">Por horas de trabajo</option>
+                          <option value="per_unit">Precio fijo por unidad</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={lbl}>Moneda</label>
+                        <select value={f('currency')} onChange={e => upd('currency', e.target.value)} style={inp({ cursor: 'pointer' })}>
+                          <option value="USD">USD</option>
+                          <option value="EUR">EUR</option>
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <label style={lbl}>M.O./hora</label>
-                      <input type="number" min="0" step="0.01" value={f('labor_rate')} onChange={e => upd('labor_rate', e.target.value)} style={inp()} placeholder="0.00" />
-                    </div>
-                    <div>
-                      <label style={lbl}>Moneda</label>
-                      <select value={f('currency')} onChange={e => upd('currency', e.target.value)} style={inp({ cursor: 'pointer' })}>
-                        <option value="USD">USD</option>
-                        <option value="EUR">EUR</option>
-                      </select>
-                    </div>
-                  </div>
+
+                    {f('pricing_mode') === 'per_unit' ? (
+                      <div>
+                        <label style={lbl}>Precio por unidad *</label>
+                        <input required type="number" min="0" step="0.01" value={f('price_per_unit')} onChange={e => upd('price_per_unit', e.target.value)} style={inp()} placeholder="0.00" />
+                      </div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div>
+                          <label style={lbl}>Costo máquina/hora *</label>
+                          <input required type="number" min="0" step="0.01" value={f('cost_per_hour')} onChange={e => upd('cost_per_hour', e.target.value)} style={inp()} placeholder="0.00" />
+                        </div>
+                        <div>
+                          <label style={lbl}>Mano de obra/hora</label>
+                          <input type="number" min="0" step="0.01" value={f('labor_rate')} onChange={e => upd('labor_rate', e.target.value)} style={inp()} placeholder="0.00" />
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Acabados */}
