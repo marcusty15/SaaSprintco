@@ -170,6 +170,25 @@ router.patch('/:id/advance', verifyToken, async (req, res) => {
   }
 });
 
+// PATCH /api/orders/:id/pay — registrar cobro
+router.patch('/:id/pay', verifyToken, requireRole('admin', 'cajera', 'atencion'), async (req, res) => {
+  const { payment_method, total_ves } = req.body;
+  try {
+    const { rows } = await pool.query(
+      `UPDATE work_orders
+       SET paid=true, paid_at=NOW(), paid_by=$1, payment_method=$2,
+           total_ves=COALESCE($3, total_ves), updated_at=NOW()
+       WHERE id=$4 AND paid=false RETURNING *`,
+      [req.user.id, payment_method || 'Efectivo', total_ves || null, req.params.id]
+    );
+    if (!rows[0]) return res.status(400).json({ error: 'Orden no encontrada o ya cobrada' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[orders/pay]', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // PATCH /api/orders/:id/deliver — marcar como entregada
 router.patch('/:id/deliver', verifyToken, requireRole('admin', 'atencion', 'cajera'), async (req, res) => {
   try {

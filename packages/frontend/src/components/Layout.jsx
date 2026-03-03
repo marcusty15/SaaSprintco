@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/auth';
 import { useThemeStore } from '../stores/theme';
 import { LIGHT, DARK, font } from '../lib/theme';
+import { api } from '../lib/api';
 
 const NAV_ITEMS = [
   { to: '/dashboard', icon: '○', label: 'Dashboard',      roles: ['admin','atencion','cajera','operario','disenador'] },
@@ -9,6 +11,7 @@ const NAV_ITEMS = [
   { to: '/orders',    icon: '▷', label: 'Órdenes',        roles: ['admin','atencion','cajera','operario','disenador'] },
   { to: '/clients',   icon: '◎', label: 'Clientes',       roles: ['admin','atencion'] },
   { to: '/catalog',   icon: '◈', label: 'Catálogo',       roles: ['admin'] },
+  { to: '/users',     icon: '◉', label: 'Usuarios',       roles: ['admin'] },
   { to: '/settings',  icon: '◌', label: 'Configuración',  roles: ['admin'] },
 ];
 
@@ -18,6 +21,7 @@ const PAGE_TITLES = {
   '/orders':    () => 'Órdenes de Trabajo',
   '/clients':   () => 'Clientes',
   '/catalog':   () => 'Catálogo',
+  '/users':     () => 'Usuarios',
   '/settings':  () => 'Configuración',
 };
 
@@ -26,6 +30,11 @@ export default function Layout() {
   const { dark, toggle } = useThemeStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const [rateEUR, setRateEUR] = useState(null);
+
+  useEffect(() => {
+    api.get('/settings').then(s => { if (s.rate_EUR) setRateEUR(parseFloat(s.rate_EUR).toFixed(2)); }).catch(() => {});
+  }, []);
 
   const T = dark ? DARK : LIGHT;
   const visibleNav = NAV_ITEMS.filter(item => item.roles.includes(user?.role));
@@ -78,7 +87,9 @@ export default function Layout() {
 
         <div style={{ padding: 16, borderTop: `1px solid ${T.borderLight}`, background: T.surface2 }}>
           <div style={{ fontSize: 11, color: T.textLight, marginBottom: 4 }}>Tasa BCV hoy</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: T.accent }}>€1 = Bs 48.20</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: T.accent }}>
+            {rateEUR ? `€1 = Bs ${rateEUR}` : '€1 = Bs —'}
+          </div>
         </div>
       </div>
 
