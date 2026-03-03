@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/quotes',    icon: '◇', label: 'Presupuestos',   roles: ['admin','atencion'] },
   { to: '/orders',    icon: '▷', label: 'Órdenes',        roles: ['admin','atencion','cajera','operario','disenador'] },
   { to: '/clients',   icon: '◎', label: 'Clientes',       roles: ['admin','atencion'] },
+  { to: '/catalog',   icon: '◈', label: 'Catálogo',       roles: ['admin'] },
   { to: '/settings',  icon: '◌', label: 'Configuración',  roles: ['admin'] },
 ];
 
@@ -16,6 +17,7 @@ const PAGE_TITLES = {
   '/quotes':    () => 'Presupuestos',
   '/orders':    () => 'Órdenes de Trabajo',
   '/clients':   () => 'Clientes',
+  '/catalog':   () => 'Catálogo',
   '/settings':  () => 'Configuración',
 };
 

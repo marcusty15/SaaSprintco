@@ -8,7 +8,8 @@ const quotesRoutes = require('./routes/quotes');
 const clientsRoutes = require('./routes/clients');
 const catalogRoutes = require('./routes/catalog');
 const ordersRoutes   = require('./routes/orders');
-const settingsRoutes = require('./routes/settings');
+const settingsRoutes   = require('./routes/settings');
+const dashboardRoutes  = require('./routes/dashboard');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -28,7 +29,8 @@ app.use('/api/quotes', quotesRoutes);
 app.use('/api/clients', clientsRoutes);
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/orders',   ordersRoutes);
-app.use('/api/settings', settingsRoutes);
+app.use('/api/settings',  settingsRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
