@@ -10,6 +10,7 @@ import Orders from './pages/Orders';
 import Settings from './pages/Settings';
 import Catalog from './pages/Catalog';
 import Users from './pages/Users';
+import Station from './pages/Station';
 
 function ProtectedRoute({ children }) {
   const { token, user } = useAuthStore();
@@ -46,6 +47,14 @@ export default function App() {
           <Route path="catalog" element={<Catalog />} />
           <Route path="users" element={<Users />} />
         </Route>
+        <Route
+          path="station"
+          element={
+            <ProtectedRoute>
+              <Station />
+            </ProtectedRoute>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

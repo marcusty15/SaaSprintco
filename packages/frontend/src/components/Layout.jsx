@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { to: '/clients',   icon: '◎', label: 'Clientes',       roles: ['admin','atencion'] },
   { to: '/catalog',   icon: '◈', label: 'Catálogo',       roles: ['admin'] },
   { to: '/users',     icon: '◉', label: 'Usuarios',       roles: ['admin'] },
+  { to: '/station',   icon: '◫', label: 'Estación',       roles: ['admin','atencion','cajera','operario','disenador'] },
   { to: '/settings',  icon: '◌', label: 'Configuración',  roles: ['admin'] },
 ];
 
@@ -22,6 +23,7 @@ const PAGE_TITLES = {
   '/clients':   () => 'Clientes',
   '/catalog':   () => 'Catálogo',
   '/users':     () => 'Usuarios',
+  '/station':   () => 'Interfaz de Estación',
   '/settings':  () => 'Configuración',
 };
 

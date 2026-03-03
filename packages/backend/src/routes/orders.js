@@ -4,6 +4,74 @@ const pool = require('../db/pool');
 const { verifyToken } = require('../middleware/auth');
 const { requireRole } = require('../middleware/requireRole');
 
+// GET /api/orders/station/counts — cantidad de órdenes por estación
+router.get('/station/counts', verifyToken, async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT s.name, COUNT(wos.id)::int AS count
+      FROM stations s
+      LEFT JOIN work_order_stations wos ON wos.station_id = s.id AND wos.status = 'in_progress'
+      LEFT JOIN work_orders wo ON wo.id = wos.work_order_id AND wo.status NOT IN ('cancelled','delivered')
+      GROUP BY s.name, s.sort_order
+      ORDER BY s.sort_order
+    `);
+    const result = {};
+    rows.forEach(r => { result[r.name] = r.count; });
+    res.json(result);
+  } catch (err) {
+    console.error('[station/counts]', err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+// GET /api/orders/station/:name/queue — cola de una estación específica
+router.get('/station/:name/queue', verifyToken, async (req, res) => {
+  try {
+    const { rows: orders } = await pool.query(`
+      SELECT
+        wo.id, wo.code, wo.priority, wo.notes, wo.due_date,
+        wo.paid, wo.total_ves::float, wo.payment_method,
+        c.name AS client_name, c.phone AS client_phone,
+        wos.started_at
+      FROM work_order_stations wos
+      JOIN work_orders wo ON wo.id = wos.work_order_id
+      JOIN stations s ON s.id = wos.station_id
+      LEFT JOIN clients c ON c.id = wo.client_id
+      WHERE s.name = $1
+        AND wos.status = 'in_progress'
+        AND wo.status NOT IN ('cancelled','delivered')
+      ORDER BY wo.priority DESC, wos.started_at ASC
+    `, [req.params.name]);
+
+    const enriched = await Promise.all(orders.map(async (o) => {
+      const { rows: items } = await pool.query(`
+        SELECT
+          qi.quantity, qi.width_cm::float, qi.height_cm::float,
+          qi.area_m2::float,
+          m.name AS material_name, m.unit,
+          p.name AS process_name,
+          COALESCE(array_agg(fo.name) FILTER (WHERE fo.name IS NOT NULL), '{}') AS finishings
+        FROM work_orders wo2
+        JOIN quotes q   ON q.id  = wo2.quote_id
+        JOIN quote_items qi ON qi.quote_id = q.id
+        JOIN materials m ON m.id = qi.material_id
+        JOIN processes p ON p.id = qi.process_id
+        LEFT JOIN quote_item_finishings qif ON qif.quote_item_id = qi.id
+        LEFT JOIN finishing_options fo ON fo.id = qif.finishing_id
+        WHERE wo2.id = $1
+        GROUP BY qi.id, qi.sort_order, m.name, m.unit, p.name
+        ORDER BY qi.sort_order
+      `, [o.id]);
+      return { ...o, items };
+    }));
+
+    res.json(enriched);
+  } catch (err) {
+    console.error('[station/queue]', err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
 // GET /api/orders — lista con cliente, progreso de estaciones
 router.get('/', verifyToken, async (req, res) => {
   try {
