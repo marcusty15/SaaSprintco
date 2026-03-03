@@ -6,6 +6,8 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
 import Quotes from './pages/Quotes';
+import Orders from './pages/Orders';
+import Settings from './pages/Settings';
 
 function ProtectedRoute({ children }) {
   const { token, user } = useAuthStore();
@@ -37,6 +39,8 @@ export default function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="clients" element={<Clients />} />
           <Route path="quotes" element={<Quotes />} />
+          <Route path="orders" element={<Orders />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
