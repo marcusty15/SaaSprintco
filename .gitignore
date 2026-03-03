@@ -1,0 +1,10 @@
+node_modules/
+.env
+dist/
+build/
+*.local
+.DS_Store
+.claude/
+test-db.js
+test-hash.js
+"p.end())"
