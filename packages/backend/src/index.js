@@ -11,6 +11,7 @@ const ordersRoutes   = require('./routes/orders');
 const settingsRoutes   = require('./routes/settings');
 const dashboardRoutes  = require('./routes/dashboard');
 const usersRoutes      = require('./routes/users');
+const rulesRoutes      = require('./routes/rules');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -19,7 +20,7 @@ const PORT = process.env.PORT || 4000;
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
     ? ['https://app.printos.com']
-    : ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    : (origin, cb) => cb(null, true), // dev: allow all localhost origins
   credentials: true,
 }));
 app.use(express.json());
@@ -33,6 +34,7 @@ app.use('/api/orders',   ordersRoutes);
 app.use('/api/settings',  settingsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users',    usersRoutes);
+app.use('/api/rules',    rulesRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

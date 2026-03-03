@@ -48,6 +48,7 @@ router.get('/station/:name/queue', verifyToken, async (req, res) => {
         SELECT
           qi.quantity, qi.width_cm::float, qi.height_cm::float,
           qi.area_m2::float,
+          qi.material_id, qi.process_id,
           m.name AS material_name, m.unit,
           p.name AS process_name,
           COALESCE(array_agg(fo.name) FILTER (WHERE fo.name IS NOT NULL), '{}') AS finishings

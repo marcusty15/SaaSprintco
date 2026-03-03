@@ -5,6 +5,18 @@ import { useThemeStore } from '../stores/theme';
 import { LIGHT, DARK, font } from '../lib/theme';
 import { api } from '../lib/api';
 
+// ─── Helper: pastilla de regla ────────────────────────────────────────────────
+function RulePill({ label, value, T }) {
+  return (
+    <div style={{ padding: '7px 10px', borderRadius: 8, background: T.blueLight, border: `1px solid ${T.blue}33` }}>
+      <div style={{ fontSize: 9, fontWeight: 700, color: T.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 12, fontWeight: 600, color: T.text }}>{value}</div>
+    </div>
+  );
+}
+
 // ─── Configuración de estaciones ─────────────────────────────────────────────
 const STATIONS = [
   {
@@ -151,12 +163,33 @@ export default function Station() {
   const [acting, setActing]       = useState(false);
   const [loadingQ, setLoadingQ]   = useState(false);
   const [tick, setTick]           = useState(0);        // para refrescar elapsed
+  const [rules, setRules]         = useState([]);
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const [loadingRules, setLoadingRules] = useState(false);
 
   // Refrescar tiempo cada minuto
   useEffect(() => {
     const t = setInterval(() => setTick(n => n + 1), 60_000);
     return () => clearInterval(t);
   }, []);
+
+  // Cargar reglas cuando cambia la orden seleccionada
+  useEffect(() => {
+    if (!selected) { setRules([]); setRulesOpen(false); return; }
+    const materialIds = [...new Set(
+      (selected.items || []).map(it => it.material_id).filter(Boolean)
+    )];
+    if (materialIds.length === 0) { setRules([]); return; }
+    setLoadingRules(true);
+    Promise.all(materialIds.map(mid => api.get(`/rules?material_id=${mid}`)))
+      .then(results => {
+        const seen = new Set();
+        const all  = results.flat().filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true; });
+        setRules(all);
+      })
+      .catch(() => setRules([]))
+      .finally(() => setLoadingRules(false));
+  }, [selected?.id]);
 
   // Cargar conteos al montar y cada 30s
   const fetchCounts = useCallback(async () => {
@@ -194,12 +227,16 @@ export default function Station() {
     setActive(null);
     setSelected(null);
     setChecked([]);
+    setRules([]);
+    setRulesOpen(false);
     fetchCounts();
   }
 
   function selectOrder(order) {
     setSelected(order);
     setChecked([]);
+    setRules([]);
+    setRulesOpen(false);
   }
 
   function toggleCheck(i) {
@@ -574,6 +611,71 @@ export default function Station() {
                   </div>
                 )}
               </div>
+
+              {/* Panel de reglas de producción */}
+              {(rules.length > 0 || loadingRules) && (
+                <div style={{
+                  background: T.surface, border: `1px solid ${T.border}`,
+                  borderRadius: 16, marginTop: 0, overflow: 'hidden',
+                }}>
+                  <div
+                    onClick={() => setRulesOpen(o => !o)}
+                    style={{
+                      padding: '14px 20px', display: 'flex', justifyContent: 'space-between',
+                      alignItems: 'center', cursor: 'pointer',
+                      borderBottom: rulesOpen ? `1px solid ${T.borderLight}` : 'none',
+                    }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>
+                      ⚙ Reglas de producción
+                    </div>
+                    <div style={{ fontSize: 11, color: T.textLight, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {loadingRules ? 'Cargando...' : `${rules.length} regla${rules.length !== 1 ? 's' : ''}`}
+                      <span style={{ fontSize: 14, color: T.textMid }}>{rulesOpen ? '▲' : '▼'}</span>
+                    </div>
+                  </div>
+                  {rulesOpen && !loadingRules && (
+                    <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      {rules.map(rule => (
+                        <div key={rule.id} style={{
+                          padding: '14px 16px', borderRadius: 12,
+                          background: T.surface2, border: `1px solid ${T.borderLight}`,
+                        }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 10 }}>
+                            {rule.material_name}
+                            {rule.process_name
+                              ? <span style={{ color: T.textMid, fontWeight: 500 }}> + {rule.process_name}</span>
+                              : <span style={{ color: T.textLight, fontWeight: 400 }}> · genérica</span>}
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 8 }}>
+                            {rule.min_dpi        != null && <RulePill label="DPI mínimo"      value={`${rule.min_dpi} dpi`}         T={T} />}
+                            {rule.bleed_mm       != null && <RulePill label="Sangrado"        value={`${rule.bleed_mm} mm`}         T={T} />}
+                            {rule.safe_zone_mm   != null && <RulePill label="Zona segura"     value={`${rule.safe_zone_mm} mm`}     T={T} />}
+                            {rule.color_mode          && <RulePill label="Modo color"       value={rule.color_mode}               T={T} />}
+                            {rule.accepted_formats?.length > 0 && <RulePill label="Formatos" value={rule.accepted_formats.join(', ')} T={T} />}
+                            {rule.print_speed    != null && <RulePill label="Vel. impresión"  value={`${rule.print_speed} m²/h`}   T={T} />}
+                            {rule.print_passes   != null && <RulePill label="Pasadas impr."   value={rule.print_passes}             T={T} />}
+                            {rule.icc_profile         && <RulePill label="Perfil ICC"       value={rule.icc_profile}              T={T} />}
+                            {rule.cut_speed      != null && <RulePill label="Vel. corte"      value={`${rule.cut_speed} mm/s`}     T={T} />}
+                            {rule.cut_pressure   != null && <RulePill label="Presión corte"   value={`${rule.cut_pressure} gf`}    T={T} />}
+                            {rule.cut_passes     != null && <RulePill label="Pasadas corte"   value={rule.cut_passes}               T={T} />}
+                            {rule.blade_offset_mm!= null && <RulePill label="Offset cuchillo" value={`${rule.blade_offset_mm} mm`} T={T} />}
+                          </div>
+                          {rule.notes && (
+                            <div style={{
+                              marginTop: 10, padding: '8px 12px', borderRadius: 8,
+                              background: T.yellowLight, border: `1px solid ${T.yellow}44`,
+                              fontSize: 11, color: T.text, lineHeight: 1.5,
+                            }}>
+                              <strong>Nota:</strong> {rule.notes}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Panel checklist */}
               <div style={{ width: 320, flexShrink: 0 }}>
